@@ -41,7 +41,9 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
         return packages
 
     def get_cmd(self):
-        return "mono CompleteSharp.exe"
+        extra = self.get_setting("completesharp_assemblies", [])
+        cmd = "mono CompleteSharp.exe \"%s\"" % ";;--;;".join(extra)
+        return cmd
 
     def is_supported_language(self, view):
         if view.is_scratch():
@@ -56,7 +58,6 @@ class CompleteSharp(sublime_plugin.EventListener):
 
     def on_query_completions(self, view, prefix, locations):
         ret = comp.on_query_completions(view, prefix, locations)
-        print "ret: %s" % ret
         return ret
 
     def on_query_context(self, view, key, operator, operand, match_all):

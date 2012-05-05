@@ -14,6 +14,7 @@ Please go [[https://github.com/quarnster/CompleteSharp/issues?sort=created&direc
     ***        git clone --recursive https://github.com/quarnster/CompleteSharp
     ** To update to the latest commit, use this command in the CompleteSharp directory:
     ***        git pull && git submodule update --recursive --init
+    * Once installed, you probably want to tweak the "completesharp_assemblies" setting, specifying the full path to extra assemblies to load
 
 === Usage ===
 Once installed it'll try to provide reasonable completion suggestions when you trigger autocompletion.
