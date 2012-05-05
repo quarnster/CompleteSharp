@@ -34,6 +34,12 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
     def __init__(self):
         super(CompleteSharpCompletion, self).__init__("CompleteSharp.sublime-settings", os.path.dirname(os.path.abspath(__file__)))
 
+    def find_absolute_of_type(self, data, full_data, type):
+        ret = super(CompleteSharpCompletion, self).find_absolute_of_type(data, full_data, type)
+        if len(ret.strip()) == 0 and type[0].islower():
+            ret = super(CompleteSharpCompletion, self).find_absolute_of_type(data, full_data, "%s%s" % (type[0].upper(), type[1:]))
+        return ret
+
     def get_packages(self, data):
         packages = re.findall("[ \t]*using[ \t]+(.*);", data)
         packages.append("System")
