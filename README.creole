@@ -5,7 +5,8 @@ A plugin that provides C# code completion inside of Sublime Text 2.
 Please go [[https://github.com/quarnster/CompleteSharp/issues?sort=created&direction=desc&state=open|here]] to see the currently known issues and feature request, or to file a new.
 
 === Prerequisites ===
-  # You need to have mono installed on your system and the mono binary in your path
+  # On Windows you need to have the .NET framework installed
+  # On OS X/Linux you need to have mono installed and the mono binary in your path
 
 === Installation ===
     * //**[[https://github.com/wbond/sublime_package_control/issues/126|Package Control can't install the plugin at the moment]]**//

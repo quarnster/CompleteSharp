@@ -21,6 +21,7 @@ freely, subject to the following restrictions:
    distribution.
 """
 import sublime_plugin
+import sublime
 import os.path
 import re
 from sublimecompletioncommon import completioncommon
@@ -48,7 +49,9 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
 
     def get_cmd(self):
         extra = self.get_setting("completesharp_assemblies", [])
-        cmd = "mono CompleteSharp.exe \"%s\"" % ";;--;;".join(extra)
+        cmd = "CompleteSharp.exe \"%s\"" % ";;--;;".join(extra)
+        if sublime.platform() != "windows":
+            cmd = "mono " + cmd
         return cmd
 
     def is_supported_language(self, view):
