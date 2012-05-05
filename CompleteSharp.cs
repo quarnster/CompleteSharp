@@ -108,6 +108,23 @@ public class CompleteSharp
                                         completion = completion.Substring(index+1);
 
                                         string display = completion + "\t" + returnType;
+                                        index = completion.IndexOf('(');
+                                        int index2 = completion.LastIndexOf(')');
+                                        if (index != -1 && index2 != -1)
+                                        {
+                                            string param = completion.Substring(index+1, index2-index-1);
+                                            completion = completion.Substring(0, index+1);
+                                            string[] par = param.Split(new Char[]{','});
+                                            int i = 1;
+                                            foreach (string p in par)
+                                            {
+                                                if (i > 1)
+                                                    completion += ", ";
+                                                completion += "${" + i + ":" + p.Trim() + "}";
+                                                i++;
+                                            }
+                                            completion += ")";
+                                        }
                                         string insertion = completion;
 
                                         System.Console.WriteLine(display + sep + insertion);
