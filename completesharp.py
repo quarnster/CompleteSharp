@@ -41,7 +41,7 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
             ret = super(CompleteSharpCompletion, self).find_absolute_of_type(data, full_data, "%s%s" % (type[0].upper(), type[1:]))
         return ret
 
-    def get_packages(self, data):
+    def get_packages(self, data, thispackage, type):
         packages = re.findall("[ \t]*using[ \t]+(.*);", data)
         packages.append("System")
         packages.append("")
