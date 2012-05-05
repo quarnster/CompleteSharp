@@ -1,0 +1,3 @@
+[submodule "sublimecompletioncommon"]
+	path = sublimecompletioncommon
+	url = git://github.com/quarnster/SublimeCompletionCommon.git

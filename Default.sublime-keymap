@@ -1,0 +1,11 @@
+[
+    {
+        "keys": ["."], "command": "complete_sharp_dot_complete",
+        "context":
+        [
+            {"key": "completesharp.supported_language"},
+            {"key": "completesharp.dotcomplete"},
+            {"key": "completion_common.is_code"}
+        ]
+    }
+]
