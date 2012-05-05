@@ -198,41 +198,49 @@ public class CompleteSharp
                     {
                         if (t != null)
                         {
-                            foreach (MemberInfo m in t.GetMembers())
+                            bool found = false;
+                            // This isn't 100% correct, but an instance where two things
+                            // are named the same but return two different types would
+                            // be considered rare.
+                            foreach (MethodInfo m in t.GetMethods())
                             {
                                 if (m.Name == args[2])
                                 {
-                                    switch (m.MemberType)
-                                    {
-                                        case MemberTypes.Method:
-                                        {
-                                            MethodInfo i = t.GetMethod(m.Name);
-                                            if (i != null)
-                                                System.Console.WriteLine(i.ReturnType.FullName);
-                                            break;
-                                        }
-                                        case MemberTypes.Field:
-                                        {
-                                            FieldInfo f = t.GetField(m.Name);
-                                            if (f != null)
-                                                System.Console.WriteLine(f.FieldType.FullName);
-                                            break;
-                                        }
-                                        case MemberTypes.Event:
-                                        {
-                                            EventInfo e = t.GetEvent(m.Name);
-                                            if (e != null)
-                                                System.Console.WriteLine(e.EventHandlerType.FullName);
-                                            break;
-                                        }
-                                        case MemberTypes.Property:
-                                        {
-                                            PropertyInfo p = t.GetProperty(m.Name);
-                                            if (p != null)
-                                                System.Console.WriteLine(p.PropertyType.FullName);
-                                            break;
-                                        }
-                                    }
+                                    System.Console.WriteLine(m.ReturnType.FullName);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (found)
+                                continue;
+                            foreach (FieldInfo f in t.GetFields())
+                            {
+                                if (f.Name == args[2])
+                                {
+                                    System.Console.WriteLine(f.FieldType.FullName);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (found)
+                                continue;
+                            foreach (EventInfo e in t.GetEvents())
+                            {
+                                if (e.Name == args[2])
+                                {
+                                    System.Console.WriteLine(e.EventHandlerType.FullName);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (found)
+                                continue;
+                            foreach (PropertyInfo p in t.GetProperties())
+                            {
+                                if (p.Name == args[2])
+                                {
+                                    System.Console.WriteLine(p.PropertyType.FullName);
+                                    found = true;
                                     break;
                                 }
                             }
@@ -258,9 +266,7 @@ public class CompleteSharp
                                     break;
                             }
                         }
-
                     }
-
                 }
                 catch (Exception e)
                 {
