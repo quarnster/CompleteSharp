@@ -24,7 +24,31 @@ import sublime_plugin
 import sublime
 import os.path
 import re
-from sublimecompletioncommon import completioncommon
+try:
+    from sublimecompletioncommon import completioncommon
+except:
+    def hack(func):
+        # If there's a sublime.error_message before a window is open
+        # on Windows 7, it appears the main editor window
+        # is never opened...
+        class hackClass:
+            def __init__(self, func):
+                self.func = func
+                self.try_now()
+
+            def try_now(self):
+                if sublime.active_window() == None:
+                    sublime.set_timeout(self.try_now, 500)
+                else:
+                    self.func()
+        hackClass(func)
+
+    def showError():
+        sublime.error_message("""\
+Unfortunately CompleteSharp currently can't be installed \
+via Package Control. Please see http://www.github.com/quarnster/CompleteSharp \
+for more details.""")
+    hack(showError)
 
 
 class CompleteSharpDotComplete(completioncommon.CompletionCommonDotComplete):
