@@ -65,7 +65,11 @@ public class CompleteSharp
                         {
                             try
                             {
-                                string fullname = mod + "." + args[1];
+                                string fullname = args[1];
+                                if (mod.Length > 0)
+                                {
+                                    fullname = mod + "." + fullname;
+                                }
                                 Type t2 = Type.GetType(fullname);
                                 if (t2 == null)
                                 {
