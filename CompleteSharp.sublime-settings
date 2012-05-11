@@ -1,4 +1,9 @@
 {
     // You probably want to configure this to something of your own
-    "completesharp_assemblies": []
+    "completesharp_assemblies": [],
+
+    // When set to true will inhibit the completions suggested
+    // by default by Sublime Text 2 if CompleteSharp can't
+    // find anything to complete
+    "completioncommon_inhibit_sublime_completions": true
 }
