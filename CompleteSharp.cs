@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using System.Collections;
+using System.Text.RegularExpressions;
 
 public class CompleteSharp
 {
@@ -40,7 +41,8 @@ public class CompleteSharp
                     System.Console.Error.WriteLine("got: " + command);
                     if (command == null)
                         break;
-                    string[] args = command.Split(new Char[] {' '});
+                    string[] args = Regex.Split(command, sep);
+
                     if (args[0] == "-quit")
                     {
                         return;
