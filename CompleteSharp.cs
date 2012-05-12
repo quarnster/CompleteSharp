@@ -70,7 +70,7 @@ public class CompleteSharp
         }
         return parameter.Length;
     }
-    private static string[] SplitParameters(string parameters)
+    private static string[] SplitParameters(string parameters, bool fix=true)
     {
         List<string> s = new List<string>();
         for (int i = 0; i < parameters.Length;)
@@ -82,7 +82,11 @@ public class CompleteSharp
                 toadd = toadd.Substring(1, toadd.Length-2);
                 toadd = toadd.Substring(0, GetParameterExtent(toadd));
             }
-            s.Add(FixName(toadd));
+            if (fix)
+                toadd = FixName(toadd);
+            toadd = toadd.Trim();
+            if (toadd.Length > 0)
+                s.Add(toadd);
             i += len;
         }
         return s.ToArray();
@@ -152,7 +156,7 @@ public class CompleteSharp
         if (index != -1 && index2 != -1)
         {
             string args = template.Substring(index+1, index2-index-1);
-            return SplitParameters(args);
+            return SplitParameters(args, false);
         }
         return new string[0];
     }
@@ -167,7 +171,7 @@ public class CompleteSharp
 
     private static Type GetType(Assembly[] assemblies, string basename, string[] templateParam)
     {
-        if (templateParam.Length > 0)
+        if (templateParam.Length > 0 && basename.IndexOf('`') == -1)
         {
             basename += "`" + templateParam.Length;
         }
@@ -177,7 +181,6 @@ public class CompleteSharp
             string bn = GetBase(templateParam[i]);
             string[] args = GetTemplateArguments(templateParam[i]);
             subtypes[i] = GetType(assemblies, bn, args);
-            System.Console.Error.WriteLine(subtypes[i].FullName);
         }
 
         Type t = Type.GetType(basename);
@@ -289,7 +292,7 @@ public class CompleteSharp
                                 }
                                 if (t2 != null)
                                 {
-                                    string typename = FixName(t2.FullName);
+                                    string typename = t2.FullName;
                                     System.Console.WriteLine(typename);
                                     System.Console.Error.WriteLine(typename);
                                     found = true;
