@@ -26,6 +26,7 @@ import os.path
 import re
 try:
     from sublimecompletioncommon import completioncommon
+    reload(completioncommon)
 except:
     def hack(func):
         # If there's a sublime.error_message before a window is open
@@ -58,12 +59,14 @@ class CompleteSharpDotComplete(completioncommon.CompletionCommonDotComplete):
 class CompleteSharpCompletion(completioncommon.CompletionCommon):
     def __init__(self):
         super(CompleteSharpCompletion, self).__init__("CompleteSharp.sublime-settings", os.path.dirname(os.path.abspath(__file__)))
+        self.replacements = {"int": "System.Int32", "string": "System.String", "char": "System.Char", "void": "System.Void", "long": "System.Int64", "short": "System.Int16"}
 
-    def find_absolute_of_type(self, data, full_data, type):
-        ret = super(CompleteSharpCompletion, self).find_absolute_of_type(data, full_data, type)
-        if len(ret.strip()) == 0 and type[0].islower():
-            ret = super(CompleteSharpCompletion, self).find_absolute_of_type(data, full_data, "%s%s" % (type[0].upper(), type[1:]))
-        return ret
+    def find_absolute_of_type(self, data, full_data, type, template_args=[]):
+        if template_args != None and len(template_args):
+            type += "`%d" % len(template_args)
+        if type in self.replacements:
+            type = self.replacements[type]
+        return super(CompleteSharpCompletion, self).find_absolute_of_type(data, full_data, type)
 
     def get_packages(self, data, thispackage, type):
         packages = re.findall("[ \t]*using[ \t]+(.*);", data)

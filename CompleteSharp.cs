@@ -23,14 +23,194 @@ freely, subject to the following restrictions:
 using System;
 using System.Reflection;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 public class CompleteSharp
 {
     private static string sep = ";;--;;";
+
+    private static int GetParameterExtent(string parameter)
+    {
+        int hookcount = 0;
+        int ltgtcount = 0;
+        for (int i = 0; i < parameter.Length; i++)
+        {
+            switch (parameter[i])
+            {
+                case ']':
+                {
+                    hookcount--;
+                    if (hookcount == 0 && ltgtcount == 0)
+                    {
+                        return i+1;
+                    }
+                    break;
+                }
+                case '[': hookcount++; break;
+                case ',':
+                {
+                    if (parameter[i] == ',' && hookcount == 0 && ltgtcount == 0)
+                    {
+                        return i;
+                    }
+                    break;
+                }
+                case '<': ltgtcount++; break;
+                case '>':
+                {
+                    ltgtcount--;
+                    if (hookcount == 0 && ltgtcount == 0)
+                    {
+                        return i+1;
+                    }
+                    break;
+                }
+            }
+        }
+        return parameter.Length;
+    }
+    private static string[] SplitParameters(string parameters)
+    {
+        List<string> s = new List<string>();
+        for (int i = 0; i < parameters.Length;)
+        {
+            int len = GetParameterExtent(parameters.Substring(i));
+            string toadd = parameters.Substring(i, len);
+            while (toadd.Length >= 2 && toadd.StartsWith("["))
+            {
+                toadd = toadd.Substring(1, toadd.Length-2);
+                toadd = toadd.Substring(0, GetParameterExtent(toadd));
+            }
+            s.Add(FixName(toadd));
+            i += len;
+        }
+        return s.ToArray();
+    }
+
+    private static string ParseParameters(string parameters, int expected, bool insertion)
+    {
+        if (parameters.Length >= 2 && parameters.StartsWith("["))
+        {
+            parameters = parameters.Substring(1, parameters.Length-2);
+        }
+        string[] para = null;
+        if (parameters.Length > 0)
+        {
+            para = SplitParameters(parameters);
+        }
+        else
+        {
+            para = new string[expected];
+            for (int i = 0; i < expected; i++)
+            {
+                para[i] = "T" + (i+1);
+            }
+        }
+        string ret = "";
+        for (int i = 0; i < para.Length; i++)
+        {
+            if (ret.Length > 0)
+                ret += ", ";
+            if (!insertion)
+            {
+                ret+= para[i];
+            }
+            else
+            {
+                ret += "${" + (i+1) + ":" + para[i] + "}";
+            }
+        }
+        return ret;
+    }
+    private static string FixName(string str, bool insertion=false)
+    {
+        int index = str.IndexOf('`');
+        if (index != -1)
+        {
+            Regex regex = new Regex("([\\w.]+)\\`(\\d+)(\\[.*\\])?");
+            Match m = regex.Match(str);
+            string type = m.Groups[1].ToString();
+            int num = System.Int32.Parse(m.Groups[2].ToString());
+            string parameters = m.Groups[3].ToString();
+            string extra = "";
+            while (parameters.EndsWith("[]"))
+            {
+                extra += "[]";
+                parameters = parameters.Substring(0, parameters.Length-2);
+            }
+
+            return type + "<" + ParseParameters(parameters, num, insertion) + ">" + extra;
+        }
+        return str;
+    }
+
+    private static string[] GetTemplateArguments(string template)
+    {
+        int index = template.IndexOf('<');
+        int index2 = template.LastIndexOf('>');
+        if (index != -1 && index2 != -1)
+        {
+            string args = template.Substring(index+1, index2-index-1);
+            return SplitParameters(args);
+        }
+        return new string[0];
+    }
+
+    private static string GetBase(string fullname)
+    {
+        int index = fullname.IndexOf('<');
+        if (index == -1)
+            return fullname;
+        return fullname.Substring(0, index);
+    }
+
+    private static Type GetType(Assembly[] assemblies, string basename, string[] templateParam)
+    {
+        if (templateParam.Length > 0)
+        {
+            basename += "`" + templateParam.Length;
+        }
+        Type[] subtypes = new Type[templateParam.Length];
+        for (int i = 0; i < subtypes.Length; i++)
+        {
+            string bn = GetBase(templateParam[i]);
+            string[] args = GetTemplateArguments(templateParam[i]);
+            subtypes[i] = GetType(assemblies, bn, args);
+            System.Console.Error.WriteLine(subtypes[i].FullName);
+        }
+
+        Type t = Type.GetType(basename);
+        if (t == null)
+        {
+            foreach (Assembly ass in assemblies)
+            {
+                t = ass.GetType(basename);
+                if (t != null)
+                    break;
+            }
+        }
+        if (t != null && subtypes.Length > 0)
+        {
+            try
+            {
+                Type t2 = t.MakeGenericType(subtypes);
+                System.Console.Error.WriteLine("returning type2: " + t2.FullName);
+                return t2;
+            }
+            catch (Exception e)
+            {
+                System.Console.Error.WriteLine(e.Message);
+                System.Console.Error.WriteLine(e.StackTrace);
+            }
+        }
+        if (t != null)
+            System.Console.Error.WriteLine("returning type: " + t.FullName);
+        return t;
+    }
+
     public static void Main(string[] arg)
     {
-        ArrayList assemblies = new ArrayList();
         if (arg.Length > 0)
         {
             string[] argv = arg[0].Split(new string[] {sep},  StringSplitOptions.None);
@@ -38,7 +218,7 @@ public class CompleteSharp
             {
                 try
                 {
-                    assemblies.Add(Assembly.LoadFrom(a));
+                    Assembly.LoadFrom(a);
                 }
                 catch (Exception e)
                 {
@@ -55,6 +235,7 @@ public class CompleteSharp
             {
                 try
                 {
+                    Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
                     if (!first)
                         // Just to indicate that there's no more output from the command and we're ready for new input
                         System.Console.WriteLine(sep);
@@ -94,7 +275,9 @@ public class CompleteSharp
                                 {
                                     fullname = mod + "." + fullname;
                                 }
+                                System.Console.Error.WriteLine("Trying " + fullname);
                                 Type t2 = Type.GetType(fullname);
+
                                 if (t2 == null)
                                 {
                                     foreach (Assembly ass in assemblies)
@@ -106,14 +289,17 @@ public class CompleteSharp
                                 }
                                 if (t2 != null)
                                 {
-                                    System.Console.WriteLine(t2.FullName);
-                                    System.Console.Error.WriteLine(t2.FullName);
+                                    string typename = FixName(t2.FullName);
+                                    System.Console.WriteLine(typename);
+                                    System.Console.Error.WriteLine(typename);
                                     found = true;
                                     break;
                                 }
                             }
-                            catch (Exception)
+                            catch (Exception e)
                             {
+                                System.Console.Error.WriteLine(e.Message);
+                                System.Console.Error.WriteLine(e.StackTrace);
                             }
                         }
                         if (found)
@@ -141,19 +327,18 @@ public class CompleteSharp
                     }
                     if (args.Length < 2)
                         continue;
+                        int len = args.Length - 3;
+                    if (len < 0)
+                        len = 0;
+                    string[] templateParam = new string[len];
+                    for (int i = 0; i < len; i++)
+                    {
+                        templateParam[i] = args[i+3];
+                    }
                     Type t = null;
                     try
                     {
-                        t = Type.GetType(args[1]);
-                        if (t == null)
-                        {
-                            foreach (Assembly ass in assemblies)
-                            {
-                                t = ass.GetType(args[1]);
-                                if (t != null)
-                                    break;
-                            }
-                        }
+                        t = GetType(assemblies, args[1], templateParam);
                     }
                     catch (Exception e)
                     {
@@ -179,25 +364,40 @@ public class CompleteSharp
                                         string returnType = completion.Substring(0, index);
                                         completion = completion.Substring(index+1);
 
-                                        string display = completion + "\t" + returnType;
+                                        string display = "";
                                         index = completion.IndexOf('(');
                                         int index2 = completion.LastIndexOf(')');
                                         if (index != -1 && index2 != -1)
                                         {
                                             string param = completion.Substring(index+1, index2-index-1);
                                             completion = completion.Substring(0, index+1);
+                                            display = completion;
                                             string[] par = param.Split(new Char[]{','});
                                             int i = 1;
                                             foreach (string p in par)
                                             {
-                                                if (i > 1)
-                                                    completion += ", ";
-                                                completion += "${" + i + ":" + p.Trim() + "}";
-                                                i++;
+                                                string toadd = FixName(p.Trim());
+                                                if (toadd.Length > 0)
+                                                {
+                                                    if (i > 1)
+                                                    {
+                                                        completion += ", ";
+                                                        display += ", ";
+                                                    }
+                                                    display += toadd;
+                                                    completion += "${" + i + ":" + toadd + "}";
+                                                    i++;
+                                                }
                                             }
                                             completion += ")";
+                                            display += ")";
+                                        }
+                                        else
+                                        {
+                                            display = completion;
                                         }
                                         string insertion = completion;
+                                        display += "\t" + FixName(returnType);
 
                                         System.Console.WriteLine(display + sep + insertion);
                                         break;
@@ -216,7 +416,7 @@ public class CompleteSharp
                                 {
                                     if (t3.Namespace == args[1])
                                     {
-                                        System.Console.WriteLine(t3.Name + "\tclass" + sep + t3.Name);
+                                        System.Console.WriteLine(FixName(t3.Name) + "\tclass" + sep + FixName(t3.Name, true));
                                     }
                                 }
                             }
@@ -234,7 +434,7 @@ public class CompleteSharp
                             {
                                 if (m.Name == args[2])
                                 {
-                                    System.Console.WriteLine(m.ReturnType.FullName);
+                                    System.Console.WriteLine(FixName(m.ReturnType.FullName));
                                     found = true;
                                     break;
                                 }
@@ -245,7 +445,7 @@ public class CompleteSharp
                             {
                                 if (f.Name == args[2])
                                 {
-                                    System.Console.WriteLine(f.FieldType.FullName);
+                                    System.Console.WriteLine(FixName(f.FieldType.FullName));
                                     found = true;
                                     break;
                                 }
@@ -256,7 +456,7 @@ public class CompleteSharp
                             {
                                 if (e.Name == args[2])
                                 {
-                                    System.Console.WriteLine(e.EventHandlerType.FullName);
+                                    System.Console.WriteLine(FixName(e.EventHandlerType.FullName));
                                     found = true;
                                     break;
                                 }
@@ -267,7 +467,7 @@ public class CompleteSharp
                             {
                                 if (p.Name == args[2])
                                 {
-                                    System.Console.WriteLine(p.PropertyType.FullName);
+                                    System.Console.WriteLine(FixName(p.PropertyType.FullName));
                                     found = true;
                                     break;
                                 }
@@ -275,17 +475,15 @@ public class CompleteSharp
                         }
                         else
                         {
-                            AppDomain MyDomain = AppDomain.CurrentDomain;
-                            Assembly[] AssembliesLoaded = MyDomain.GetAssemblies();
                             bool found = false;;
 
-                            foreach (Assembly asm in AssembliesLoaded)
+                            foreach (Assembly asm in assemblies)
                             {
                                 foreach (Type t3 in asm.GetTypes())
                                 {
                                     if (t3.Namespace == args[1] && t3.Name == args[2])
                                     {
-                                        System.Console.WriteLine(t3.FullName);
+                                        System.Console.WriteLine(FixName(t3.FullName));
                                         found = true;
                                         break;
                                     }
