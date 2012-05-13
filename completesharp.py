@@ -74,6 +74,15 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
         packages.append("")
         return packages
 
+    def filter(self, typename, var, isstatic, data, indata):
+        ret = []
+        for d in indata:
+            # get_ and set_ are mostly associated with properties
+            if d[0].startswith("get_") or d[0].startswith("set_"):
+                continue
+            ret.append(d)
+        return super(CompleteSharpCompletion, self).filter(typename, var, isstatic, data, ret)
+
     def get_cmd(self):
         extra = self.get_setting("completesharp_assemblies", [])
         cmd = "CompleteSharp.exe \"%s\"" % ";;--;;".join(extra)

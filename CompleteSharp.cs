@@ -211,6 +211,64 @@ public class CompleteSharp
             System.Console.Error.WriteLine("returning type: " + t.FullName);
         return t;
     }
+    private enum Accessibility
+    {
+        NONE = (0<<0),
+        STATIC = (1<<0),
+        PRIVATE = (1<<1),
+        PROTECTED = (1<<2),
+        PUBLIC = (1<<3),
+        INTERNAL = (1<<4)
+    };
+
+    private static int GetModifiers(MemberInfo m)
+    {
+        Accessibility modifiers = Accessibility.NONE;
+        switch (m.MemberType)
+        {
+            case MemberTypes.Field:
+            {
+                FieldInfo f = (FieldInfo)m;
+                if (f.IsPrivate)
+                    modifiers |= Accessibility.PRIVATE;
+                if (f.IsPublic)
+                    modifiers |= Accessibility.PUBLIC;
+                if (f.IsStatic)
+                    modifiers |= Accessibility.STATIC;
+                if (!f.IsPublic && !f.IsPrivate)
+                    modifiers |= Accessibility.PROTECTED;
+                break;
+            }
+            case MemberTypes.Method:
+            {
+                MethodInfo mi = (MethodInfo)m;
+                if (mi.IsPrivate)
+                    modifiers |= Accessibility.PRIVATE;
+                if (mi.IsPublic)
+                    modifiers |= Accessibility.PUBLIC;
+                if (mi.IsStatic)
+                    modifiers |= Accessibility.STATIC;
+                if (!mi.IsPublic && !mi.IsPrivate)
+                    modifiers |= Accessibility.PROTECTED;
+                break;
+            }
+            case MemberTypes.Property:
+            {
+                PropertyInfo p = (PropertyInfo)m;
+                foreach (MethodInfo mi in p.GetAccessors())
+                {
+                    modifiers |= (Accessibility)GetModifiers(mi);
+                }
+                break;
+            }
+            default:
+            {
+                modifiers = Accessibility.STATIC|Accessibility.PUBLIC;
+                break;
+            }
+        }
+        return (int) modifiers;
+    }
 
     public static void Main(string[] arg)
     {
@@ -353,7 +411,7 @@ public class CompleteSharp
                     {
                         if (t != null)
                         {
-                            foreach (MemberInfo m in t.GetMembers())
+                            foreach (MemberInfo m in t.GetMembers(BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.FlattenHierarchy))
                             {
                                 switch (m.MemberType)
                                 {
@@ -402,7 +460,7 @@ public class CompleteSharp
                                         string insertion = completion;
                                         display += "\t" + FixName(returnType);
 
-                                        System.Console.WriteLine(display + sep + insertion);
+                                        System.Console.WriteLine(display + sep + insertion + sep + GetModifiers(m));
                                         break;
                                     }
                                 }
