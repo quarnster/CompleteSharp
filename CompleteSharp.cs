@@ -25,6 +25,7 @@ using System.Reflection;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.IO;
 
 public class CompleteSharp
 {
@@ -169,7 +170,7 @@ public class CompleteSharp
         return fullname.Substring(0, index);
     }
 
-    private static Type GetType(Assembly[] assemblies, string basename, string[] templateParam)
+    protected static Type GetType(MyAppDomain ad, string basename, string[] templateParam)
     {
         if (templateParam.Length > 0 && basename.IndexOf('`') == -1)
         {
@@ -180,19 +181,11 @@ public class CompleteSharp
         {
             string bn = GetBase(templateParam[i]);
             string[] args = GetTemplateArguments(templateParam[i]);
-            subtypes[i] = GetType(assemblies, bn, args);
+            subtypes[i] = GetType(ad, bn, args);
         }
 
-        Type t = Type.GetType(basename);
-        if (t == null)
-        {
-            foreach (Assembly ass in assemblies)
-            {
-                t = ass.GetType(basename);
-                if (t != null)
-                    break;
-            }
-        }
+        Type t = ad.GetType(basename);
+
         if (t != null && subtypes.Length > 0)
         {
             try
@@ -270,62 +263,42 @@ public class CompleteSharp
         return (int) modifiers;
     }
 
-    public static void Main(string[] arg)
+    protected class MyAppDomain : MarshalByRefObject
     {
-        if (arg.Length > 0)
+        class Hack : MarshalByRefObject
         {
-            string[] argv = arg[0].Split(new string[] {sep},  StringSplitOptions.None);
-            foreach (string a in argv)
+            public MyAppDomain ad;
+
+            public void Load(byte[] data)
             {
-                try
-                {
-                    Assembly.LoadFrom(a);
-                }
-                catch (Exception e)
-                {
-                    System.Console.Error.WriteLine("exception: " + e.Message);
-                    System.Console.Error.WriteLine(e.StackTrace);
-                }
+                AppDomain.CurrentDomain.Load(data);
             }
-        }
-
-        try
-        {
-            bool first = true;
-            while (true)
+            public Type GetType(string basename)
+            {
+                Type t = null;
+                foreach (Assembly ass in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    t = ass.GetType(basename);
+                    if (t != null)
+                        break;
+                }
+                return t;
+            }
+            public bool Execute(string[] args, ArrayList modules)
             {
                 try
                 {
+                    foreach (string s in args)
+                    {
+                        System.Console.Error.WriteLine("execute args: " + s);
+                    }
                     Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-                    if (!first)
-                        // Just to indicate that there's no more output from the command and we're ready for new input
-                        System.Console.WriteLine(sep);
-                    first = false;
-                    string command = System.Console.ReadLine();
-                    System.Console.Error.WriteLine("got: " + command);
-                    if (command == null)
-                        break;
-                    string[] args = Regex.Split(command, sep);
-
                     if (args[0] == "-quit")
                     {
-                        return;
+                        return false;
                     }
                     else if (args[0] == "-findclass")
                     {
-                        ArrayList modules = new ArrayList();
-                        string line = null;
-                        try
-                        {
-                            while ((line = System.Console.ReadLine()) != null)
-                            {
-                                if (line == sep)
-                                    break;
-                                modules.Add(line);
-                            }
-                        }
-                        catch (Exception)
-                        {}
                         bool found = false;
                         foreach (String mod in modules)
                         {
@@ -337,17 +310,7 @@ public class CompleteSharp
                                     fullname = mod + "." + fullname;
                                 }
                                 System.Console.Error.WriteLine("Trying " + fullname);
-                                Type t2 = Type.GetType(fullname);
-
-                                if (t2 == null)
-                                {
-                                    foreach (Assembly ass in assemblies)
-                                    {
-                                        t2 = ass.GetType(fullname);
-                                        if (t2 != null)
-                                            break;
-                                    }
-                                }
+                                Type t2 = GetType(fullname);
                                 if (t2 != null)
                                 {
                                     string typename = t2.FullName;
@@ -364,12 +327,10 @@ public class CompleteSharp
                             }
                         }
                         if (found)
-                            continue;
+                            return true;
                         // Probably a namespace then?
-                        AppDomain MyDomain = AppDomain.CurrentDomain;
-                        Assembly[] AssembliesLoaded = MyDomain.GetAssemblies();
 
-                        foreach (Assembly asm in AssembliesLoaded)
+                        foreach (Assembly asm in assemblies)
                         {
                             foreach (Type t3 in asm.GetTypes())
                             {
@@ -384,10 +345,10 @@ public class CompleteSharp
                             if (found)
                                 break;
                         }
-                        continue;
+                        return true;
                     }
                     if (args.Length < 2)
-                        continue;
+                        return true;
                         int len = args.Length - 3;
                     if (len < 0)
                         len = 0;
@@ -399,7 +360,7 @@ public class CompleteSharp
                     Type t = null;
                     try
                     {
-                        t = GetType(assemblies, args[1], templateParam);
+                        t = CompleteSharp.GetType(ad, args[1], templateParam);
                     }
                     catch (Exception e)
                     {
@@ -468,10 +429,7 @@ public class CompleteSharp
                         }
                         else
                         {
-                            AppDomain MyDomain = AppDomain.CurrentDomain;
-                            Assembly[] AssembliesLoaded = MyDomain.GetAssemblies();
-
-                            foreach (Assembly asm in AssembliesLoaded)
+                            foreach (Assembly asm in assemblies)
                             {
                                 foreach (Type t3 in asm.GetTypes())
                                 {
@@ -501,7 +459,7 @@ public class CompleteSharp
                                 }
                             }
                             if (found)
-                                continue;
+                                return true;
                             foreach (FieldInfo f in t.GetFields())
                             {
                                 if (f.Name == args[2])
@@ -512,7 +470,7 @@ public class CompleteSharp
                                 }
                             }
                             if (found)
-                                continue;
+                                return true;
                             foreach (EventInfo e in t.GetEvents())
                             {
                                 if (e.Name == args[2])
@@ -523,7 +481,7 @@ public class CompleteSharp
                                 }
                             }
                             if (found)
-                                continue;
+                                return true;
                             foreach (PropertyInfo p in t.GetProperties())
                             {
                                 if (p.Name == args[2])
@@ -558,6 +516,148 @@ public class CompleteSharp
                 catch (Exception e)
                 {
                     System.Console.Error.WriteLine(e);
+                }
+                return true;
+            }
+        };
+        private AppDomain ad = null;
+        private string[] assemblies;
+        private DateTime[] times = null;
+        public MyAppDomain(string[] arg)
+        {
+            assemblies = arg;
+            times = new DateTime[arg.Length];
+            LoadAssemblies();
+        }
+
+        public void LoadAssemblies()
+        {
+            if (ad != null)
+            {
+                System.Console.Error.WriteLine("Unloading domain");
+                AppDomain.Unload(ad);
+            }
+
+            ad = AppDomain.CreateDomain("MyAppDomain");
+            object o = ad.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, "CompleteSharp+MyAppDomain+Hack");
+            Hack h = o as Hack;
+            int idx = 0;
+
+            foreach (string a in assemblies)
+            {
+                try
+                {
+                    FileInfo fi = new FileInfo(a);
+                    times[idx] = fi.LastWriteTime;
+                    idx++;
+
+                    System.Console.Error.WriteLine("Loading: " + a);
+                    h.Load(File.ReadAllBytes(a));
+                }
+                catch (Exception e)
+                {
+                    System.Console.Error.WriteLine("exception: " + e.Message);
+                    System.Console.Error.WriteLine(e.StackTrace);
+                }
+            }
+        }
+        public Type GetType(string basename)
+        {
+            object o = ad.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, "CompleteSharp+MyAppDomain+Hack");
+            Hack h = o as Hack;
+            h.ad = this;
+            return h.GetType(basename);
+        }
+        public bool Execute(string[] args, ArrayList modules)
+        {
+            CheckUpdate();
+            object o = ad.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, "CompleteSharp+MyAppDomain+Hack");
+            Hack h = o as Hack;
+            h.ad = this;
+            return h.Execute(args, modules);
+        }
+
+        private void CheckUpdate()
+        {
+            // Yes, polling like this is a bit messy, however FileSystemWatcher didn't
+            // work for me on OS X, there probably aren't that many assemblies to check
+            // and the polling is only done after the user requests a completion, so
+            // it shouldn't be too bad
+            bool reload = false;
+            for (int i = 0; i < times.Length; i++)
+            {
+                FileInfo fi = new FileInfo(assemblies[i]);
+                if (fi.LastWriteTime > times[i])
+                {
+                    System.Console.Error.WriteLine("changed: " + assemblies[i] + ", " + fi.LastWriteTime + ", " + times[i]);
+                    reload = true;
+                    break;
+                }
+            }
+            if (reload)
+            {
+                LoadAssemblies();
+            }
+        }
+    }
+
+    public static void Main(string[] arg)
+    {
+        try
+        {
+            bool first = true;
+
+            string[] argv = null;
+            if (arg.Length > 0)
+            {
+                argv = arg[0].Split(new string[] {sep},  StringSplitOptions.None);
+            }
+            else
+            {
+                argv = new string[0];
+            }
+            MyAppDomain ad = new MyAppDomain(argv);
+
+            while (true)
+            {
+                try
+                {
+                    if (!first)
+                        // Just to indicate that there's no more output from the command and we're ready for new input
+                        System.Console.WriteLine(sep);
+                    first = false;
+                    string command = System.Console.ReadLine();
+                    System.Console.Error.WriteLine("got: " + command);
+                    if (command == null)
+                        break;
+                    string[] args = Regex.Split(command, sep);
+                    ArrayList modules = null;
+                    if (args[0] == "-findclass")
+                    {
+                        modules = new ArrayList();
+                        string line = null;
+                        try
+                        {
+                            while ((line = System.Console.ReadLine()) != null)
+                            {
+                                if (line == sep)
+                                    break;
+                                modules.Add(line);
+                            }
+                        }
+                        catch (Exception)
+                        {}
+                    }
+
+                    if (!ad.Execute(args, modules))
+                    {
+                        break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    System.Console.Error.WriteLine(e.Message);
+                    System.Console.Error.WriteLine(e.StackTrace);
                 }
             }
         }
