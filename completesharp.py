@@ -62,6 +62,13 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
         self.replacements = {"int": "System.Int32", "string": "System.String", "char": "System.Char", "void": "System.Void", "long": "System.Int64", "short": "System.Int16"}
 
     def find_absolute_of_type(self, data, full_data, type, template_args=[]):
+        idx1 = type.find("+")
+        idx2 = type.find("`")
+        extra = ""
+        if idx2 != -1 and idx1 != -1 and idx1 < idx2:
+            end = type[idx2:]
+            extra = type[idx1:idx2]
+            type = "%s%s%s" % (type[:idx1], end, extra)
         if template_args != None and len(template_args):
             type += "`%d" % len(template_args)
         if type in self.replacements:
@@ -79,6 +86,8 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
         for d in indata:
             # get_ and set_ are mostly associated with properties
             if d[0].startswith("get_") or d[0].startswith("set_"):
+                continue
+            elif len(d) == 3 and self.is_static(d[2]) and var != None:
                 continue
             ret.append(d)
         return super(CompleteSharpCompletion, self).filter(typename, var, isstatic, data, ret)

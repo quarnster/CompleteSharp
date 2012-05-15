@@ -83,12 +83,14 @@ public class CompleteSharp
                 toadd = toadd.Substring(1, toadd.Length-2);
                 toadd = toadd.Substring(0, GetParameterExtent(toadd));
             }
-            if (fix)
+            if (fix && toadd.Trim().Length > 0)
                 toadd = FixName(toadd);
             toadd = toadd.Trim();
             if (toadd.Length > 0)
                 s.Add(toadd);
             i += len;
+            if (len == 0)
+                i++;
         }
         return s.ToArray();
     }
@@ -133,11 +135,16 @@ public class CompleteSharp
         int index = str.IndexOf('`');
         if (index != -1)
         {
-            Regex regex = new Regex("([\\w.]+)\\`(\\d+)(\\[.*\\])?");
-            Match m = regex.Match(str);
+            Regex regex = new Regex("^\\s*([^`]+)\\`(\\d+)([^\\[]+)?(\\[.*\\])?");
+            Match m = regex.Match(str.Replace("$", "\\$"));
             string type = m.Groups[1].ToString();
             int num = System.Int32.Parse(m.Groups[2].ToString());
-            string parameters = m.Groups[3].ToString();
+            string subclass = m.Groups[3].ToString();
+            string parameters = m.Groups[4].ToString();
+            if (subclass.Length > 0)
+            {
+                subclass = "." + subclass.Substring(1);
+            }
             string extra = "";
             while (parameters.EndsWith("[]"))
             {
@@ -145,7 +152,8 @@ public class CompleteSharp
                 parameters = parameters.Substring(0, parameters.Length-2);
             }
 
-            return type + "<" + ParseParameters(parameters, num, insertion) + ">" + extra;
+
+            str = type + "<" + ParseParameters(parameters, num, insertion) + ">" + subclass + extra;
         }
         return str;
     }
