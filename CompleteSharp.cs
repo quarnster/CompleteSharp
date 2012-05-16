@@ -342,13 +342,23 @@ public class CompleteSharp
                         {
                             foreach (Type t3 in asm.GetTypes())
                             {
-                                if (t3.Namespace == args[1])
+                                if (t3.Namespace == null)
+                                    continue;
+                                foreach (string mod in modules)
                                 {
-                                    System.Console.WriteLine(args[1]);
-                                    System.Console.Error.WriteLine(args[1]);
-                                    found = true;
-                                    break;
+                                    string test = args[1];
+                                    if (mod.Length > 0)
+                                        test = mod + "." + test;
+                                    if (t3.Namespace.StartsWith(test))
+                                    {
+                                        System.Console.WriteLine(test);
+                                        System.Console.Error.WriteLine(test);
+                                        found = true;
+                                        break;
+                                    }
                                 }
+                                if (found)
+                                    break;
                             }
                             if (found)
                                 break;
@@ -441,9 +451,19 @@ public class CompleteSharp
                             {
                                 foreach (Type t3 in asm.GetTypes())
                                 {
+                                    if (t3.Namespace == null)
+                                        continue;
                                     if (t3.Namespace == args[1])
                                     {
                                         System.Console.WriteLine(FixName(t3.Name) + "\tclass" + sep + FixName(t3.Name, true));
+                                    }
+                                    else if (t3.Namespace != args[1] && t3.Namespace.StartsWith(args[1]))
+                                    {
+                                        string name = t3.Namespace.Substring(args[1].Length+1);
+                                        if (!name.Contains("."))
+                                        {
+                                            System.Console.WriteLine(name + "\tnamespace" + sep + name);
+                                        }
                                     }
                                 }
                             }
@@ -502,15 +522,18 @@ public class CompleteSharp
                         }
                         else
                         {
-                            bool found = false;;
+                            bool found = false;
 
+                            string ns = args[1] + "." + args[2];
                             foreach (Assembly asm in assemblies)
                             {
                                 foreach (Type t3 in asm.GetTypes())
                                 {
-                                    if (t3.Namespace == args[1] && t3.Name == args[2])
+                                    if (t3.Namespace == null)
+                                        continue;
+                                    if (t3.Namespace.StartsWith(ns))
                                     {
-                                        System.Console.WriteLine(FixName(t3.FullName));
+                                        System.Console.WriteLine(ns);
                                         found = true;
                                         break;
                                     }
