@@ -475,10 +475,11 @@ public class CompleteSharp
                         if (t != null)
                         {
                             bool found = false;
+                            BindingFlags flags = BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.FlattenHierarchy;
                             // This isn't 100% correct, but an instance where two things
                             // are named the same but return two different types would
                             // be considered rare.
-                            foreach (MethodInfo m in t.GetMethods())
+                            foreach (MethodInfo m in t.GetMethods(flags))
                             {
                                 if (m.Name == args[2])
                                 {
@@ -489,7 +490,7 @@ public class CompleteSharp
                             }
                             if (found)
                                 return true;
-                            foreach (FieldInfo f in t.GetFields())
+                            foreach (FieldInfo f in t.GetFields(flags))
                             {
                                 if (f.Name == args[2])
                                 {
@@ -500,7 +501,7 @@ public class CompleteSharp
                             }
                             if (found)
                                 return true;
-                            foreach (EventInfo e in t.GetEvents())
+                            foreach (EventInfo e in t.GetEvents(flags))
                             {
                                 if (e.Name == args[2])
                                 {
@@ -511,7 +512,7 @@ public class CompleteSharp
                             }
                             if (found)
                                 return true;
-                            foreach (PropertyInfo p in t.GetProperties())
+                            foreach (PropertyInfo p in t.GetProperties(flags))
                             {
                                 if (p.Name == args[2])
                                 {
