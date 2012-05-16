@@ -523,23 +523,42 @@ public class CompleteSharp
                         else
                         {
                             bool found = false;
-
-                            string ns = args[1] + "." + args[2];
                             foreach (Assembly asm in assemblies)
                             {
                                 foreach (Type t3 in asm.GetTypes())
                                 {
                                     if (t3.Namespace == null)
                                         continue;
-                                    if (t3.Namespace.StartsWith(ns))
+                                    if (t3.Namespace == args[1] && t3.Name == args[2])
                                     {
-                                        System.Console.WriteLine(ns);
+                                        System.Console.WriteLine(FixName(t3.FullName));
                                         found = true;
                                         break;
                                     }
                                 }
                                 if (found)
                                     break;
+                            }
+                            if (!found)
+                            {
+                                // It's a namespace we are completing.
+                                string ns = args[1] + "." + args[2];
+                                foreach (Assembly asm in assemblies)
+                                {
+                                    foreach (Type t3 in asm.GetTypes())
+                                    {
+                                        if (t3.Namespace == null)
+                                            continue;
+                                        if (t3.Namespace.StartsWith(ns))
+                                        {
+                                            System.Console.WriteLine(ns);
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (found)
+                                        break;
+                                }
                             }
                         }
                     }
