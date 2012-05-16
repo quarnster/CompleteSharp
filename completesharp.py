@@ -94,7 +94,7 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
 
     def get_cmd(self):
         extra = self.get_setting("completesharp_assemblies", [])
-        cmd = "CompleteSharp.exe \"%s\"" % ";;--;;".join(extra)
+        cmd = "CompleteSharp.exe '%s'" % ";;--;;".join(extra)
         if sublime.platform() != "windows":
             cmd = "mono " + cmd
         return cmd
