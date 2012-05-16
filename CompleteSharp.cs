@@ -31,255 +31,255 @@ public class CompleteSharp
 {
     private static string sep = ";;--;;";
 
-    private static int GetParameterExtent(string parameter)
-    {
-        int hookcount = 0;
-        int ltgtcount = 0;
-        for (int i = 0; i < parameter.Length; i++)
-        {
-            switch (parameter[i])
-            {
-                case ']':
-                {
-                    hookcount--;
-                    if (hookcount == 0 && ltgtcount == 0)
-                    {
-                        return i+1;
-                    }
-                    break;
-                }
-                case '[': hookcount++; break;
-                case ',':
-                {
-                    if (parameter[i] == ',' && hookcount == 0 && ltgtcount == 0)
-                    {
-                        return i;
-                    }
-                    break;
-                }
-                case '<': ltgtcount++; break;
-                case '>':
-                {
-                    ltgtcount--;
-                    if (hookcount == 0 && ltgtcount == 0)
-                    {
-                        return i+1;
-                    }
-                    break;
-                }
-            }
-        }
-        return parameter.Length;
-    }
-    private static string[] SplitParameters(string parameters, bool fix=true)
-    {
-        List<string> s = new List<string>();
-        for (int i = 0; i < parameters.Length;)
-        {
-            int len = GetParameterExtent(parameters.Substring(i));
-            string toadd = parameters.Substring(i, len);
-            while (toadd.Length >= 2 && toadd.StartsWith("["))
-            {
-                toadd = toadd.Substring(1, toadd.Length-2);
-                toadd = toadd.Substring(0, GetParameterExtent(toadd));
-            }
-            if (fix && toadd.Trim().Length > 0)
-                toadd = FixName(toadd);
-            toadd = toadd.Trim();
-            if (toadd.Length > 0)
-                s.Add(toadd);
-            i += len;
-            if (len == 0)
-                i++;
-        }
-        return s.ToArray();
-    }
-
-    private static string ParseParameters(string parameters, int expected, bool insertion)
-    {
-        if (parameters.Length >= 2 && parameters.StartsWith("["))
-        {
-            parameters = parameters.Substring(1, parameters.Length-2);
-        }
-        string[] para = null;
-        if (parameters.Length > 0)
-        {
-            para = SplitParameters(parameters);
-        }
-        else
-        {
-            para = new string[expected];
-            for (int i = 0; i < expected; i++)
-            {
-                para[i] = "T" + (i+1);
-            }
-        }
-        string ret = "";
-        for (int i = 0; i < para.Length; i++)
-        {
-            if (ret.Length > 0)
-                ret += ", ";
-            if (!insertion)
-            {
-                ret+= para[i];
-            }
-            else
-            {
-                ret += "${" + (i+1) + ":" + para[i] + "}";
-            }
-        }
-        return ret;
-    }
-    private static string FixName(string str, bool insertion=false)
-    {
-        int index = str.IndexOf('`');
-        if (index != -1)
-        {
-            Regex regex = new Regex("^\\s*([^`]+)\\`(\\d+)([^\\[]+)?(\\[.*\\])?");
-            Match m = regex.Match(str.Replace("$", "\\$"));
-            string type = m.Groups[1].ToString();
-            int num = System.Int32.Parse(m.Groups[2].ToString());
-            string subclass = m.Groups[3].ToString();
-            string parameters = m.Groups[4].ToString();
-            if (subclass.Length > 0)
-            {
-                subclass = "." + subclass.Substring(1);
-            }
-            string extra = "";
-            while (parameters.EndsWith("[]"))
-            {
-                extra += "[]";
-                parameters = parameters.Substring(0, parameters.Length-2);
-            }
-
-
-            str = type + "<" + ParseParameters(parameters, num, insertion) + ">" + subclass + extra;
-        }
-        return str;
-    }
-
-    private static string[] GetTemplateArguments(string template)
-    {
-        int index = template.IndexOf('<');
-        int index2 = template.LastIndexOf('>');
-        if (index != -1 && index2 != -1)
-        {
-            string args = template.Substring(index+1, index2-index-1);
-            return SplitParameters(args, false);
-        }
-        return new string[0];
-    }
-
-    private static string GetBase(string fullname)
-    {
-        int index = fullname.IndexOf('<');
-        if (index == -1)
-            return fullname;
-        return fullname.Substring(0, index);
-    }
-
-    protected static Type GetType(MyAppDomain ad, string basename, string[] templateParam)
-    {
-        if (templateParam.Length > 0 && basename.IndexOf('`') == -1)
-        {
-            basename += "`" + templateParam.Length;
-        }
-        Type[] subtypes = new Type[templateParam.Length];
-        for (int i = 0; i < subtypes.Length; i++)
-        {
-            string bn = GetBase(templateParam[i]);
-            string[] args = GetTemplateArguments(templateParam[i]);
-            subtypes[i] = GetType(ad, bn, args);
-        }
-
-        Type t = ad.GetType(basename);
-
-        if (t != null && subtypes.Length > 0)
-        {
-            try
-            {
-                Type t2 = t.MakeGenericType(subtypes);
-                System.Console.Error.WriteLine("returning type2: " + t2.FullName);
-                return t2;
-            }
-            catch (Exception e)
-            {
-                System.Console.Error.WriteLine(e.Message);
-                System.Console.Error.WriteLine(e.StackTrace);
-            }
-        }
-        if (t != null)
-            System.Console.Error.WriteLine("returning type: " + t.FullName);
-        return t;
-    }
-    private enum Accessibility
-    {
-        NONE = (0<<0),
-        STATIC = (1<<0),
-        PRIVATE = (1<<1),
-        PROTECTED = (1<<2),
-        PUBLIC = (1<<3),
-        INTERNAL = (1<<4)
-    };
-
-    private static int GetModifiers(MemberInfo m)
-    {
-        Accessibility modifiers = Accessibility.NONE;
-        switch (m.MemberType)
-        {
-            case MemberTypes.Field:
-            {
-                FieldInfo f = (FieldInfo)m;
-                if (f.IsPrivate)
-                    modifiers |= Accessibility.PRIVATE;
-                if (f.IsPublic)
-                    modifiers |= Accessibility.PUBLIC;
-                if (f.IsStatic)
-                    modifiers |= Accessibility.STATIC;
-                if (!f.IsPublic && !f.IsPrivate)
-                    modifiers |= Accessibility.PROTECTED;
-                break;
-            }
-            case MemberTypes.Method:
-            {
-                MethodInfo mi = (MethodInfo)m;
-                if (mi.IsPrivate)
-                    modifiers |= Accessibility.PRIVATE;
-                if (mi.IsPublic)
-                    modifiers |= Accessibility.PUBLIC;
-                if (mi.IsStatic)
-                    modifiers |= Accessibility.STATIC;
-                if (!mi.IsPublic && !mi.IsPrivate)
-                    modifiers |= Accessibility.PROTECTED;
-                break;
-            }
-            case MemberTypes.Property:
-            {
-                PropertyInfo p = (PropertyInfo)m;
-                foreach (MethodInfo mi in p.GetAccessors())
-                {
-                    modifiers |= (Accessibility)GetModifiers(mi);
-                }
-                break;
-            }
-            default:
-            {
-                modifiers = Accessibility.STATIC|Accessibility.PUBLIC;
-                break;
-            }
-        }
-        return (int) modifiers;
-    }
-
     protected class MyAppDomain : MarshalByRefObject
     {
         class Hack : MarshalByRefObject
         {
+            private int GetParameterExtent(string parameter)
+            {
+                int hookcount = 0;
+                int ltgtcount = 0;
+                for (int i = 0; i < parameter.Length; i++)
+                {
+                    switch (parameter[i])
+                    {
+                        case ']':
+                        {
+                            hookcount--;
+                            if (hookcount == 0 && ltgtcount == 0)
+                            {
+                                return i+1;
+                            }
+                            break;
+                        }
+                        case '[': hookcount++; break;
+                        case ',':
+                        {
+                            if (parameter[i] == ',' && hookcount == 0 && ltgtcount == 0)
+                            {
+                                return i;
+                            }
+                            break;
+                        }
+                        case '<': ltgtcount++; break;
+                        case '>':
+                        {
+                            ltgtcount--;
+                            if (hookcount == 0 && ltgtcount == 0)
+                            {
+                                return i+1;
+                            }
+                            break;
+                        }
+                    }
+                }
+                return parameter.Length;
+            }
+            private string[] SplitParameters(string parameters, bool fix=true)
+            {
+                List<string> s = new List<string>();
+                for (int i = 0; i < parameters.Length;)
+                {
+                    int len = GetParameterExtent(parameters.Substring(i));
+                    string toadd = parameters.Substring(i, len);
+                    while (toadd.Length >= 2 && toadd.StartsWith("["))
+                    {
+                        toadd = toadd.Substring(1, toadd.Length-2);
+                        toadd = toadd.Substring(0, GetParameterExtent(toadd));
+                    }
+                    if (fix && toadd.Trim().Length > 0)
+                        toadd = FixName(toadd);
+                    toadd = toadd.Trim();
+                    if (toadd.Length > 0)
+                        s.Add(toadd);
+                    i += len;
+                    if (len == 0)
+                        i++;
+                }
+                return s.ToArray();
+            }
+
+            private string ParseParameters(string parameters, int expected, bool insertion)
+            {
+                if (parameters.Length >= 2 && parameters.StartsWith("["))
+                {
+                    parameters = parameters.Substring(1, parameters.Length-2);
+                }
+                string[] para = null;
+                if (parameters.Length > 0)
+                {
+                    para = SplitParameters(parameters);
+                }
+                else
+                {
+                    para = new string[expected];
+                    for (int i = 0; i < expected; i++)
+                    {
+                        para[i] = "T" + (i+1);
+                    }
+                }
+                string ret = "";
+                for (int i = 0; i < para.Length; i++)
+                {
+                    if (ret.Length > 0)
+                        ret += ", ";
+                    if (!insertion)
+                    {
+                        ret+= para[i];
+                    }
+                    else
+                    {
+                        ret += "${" + (i+1) + ":" + para[i] + "}";
+                    }
+                }
+                return ret;
+            }
+            private string FixName(string str, bool insertion=false)
+            {
+                int index = str.IndexOf('`');
+                if (index != -1)
+                {
+                    Regex regex = new Regex("^\\s*([^`]+)\\`(\\d+)([^\\[]+)?(\\[.*\\])?");
+                    Match m = regex.Match(str.Replace("$", "\\$"));
+                    string type = m.Groups[1].ToString();
+                    int num = System.Int32.Parse(m.Groups[2].ToString());
+                    string subclass = m.Groups[3].ToString();
+                    string parameters = m.Groups[4].ToString();
+                    if (subclass.Length > 0)
+                    {
+                        subclass = "." + subclass.Substring(1);
+                    }
+                    string extra = "";
+                    while (parameters.EndsWith("[]"))
+                    {
+                        extra += "[]";
+                        parameters = parameters.Substring(0, parameters.Length-2);
+                    }
+
+
+                    str = type + "<" + ParseParameters(parameters, num, insertion) + ">" + subclass + extra;
+                }
+                return str;
+            }
+
+            private string[] GetTemplateArguments(string template)
+            {
+                int index = template.IndexOf('<');
+                int index2 = template.LastIndexOf('>');
+                if (index != -1 && index2 != -1)
+                {
+                    string args = template.Substring(index+1, index2-index-1);
+                    return SplitParameters(args, false);
+                }
+                return new string[0];
+            }
+
+            private string GetBase(string fullname)
+            {
+                int index = fullname.IndexOf('<');
+                if (index == -1)
+                    return fullname;
+                return fullname.Substring(0, index);
+            }
+
+            protected Type GetType(MyAppDomain ad, string basename, string[] templateParam)
+            {
+                if (templateParam.Length > 0 && basename.IndexOf('`') == -1)
+                {
+                    basename += "`" + templateParam.Length;
+                }
+                Type[] subtypes = new Type[templateParam.Length];
+                for (int i = 0; i < subtypes.Length; i++)
+                {
+                    string bn = GetBase(templateParam[i]);
+                    string[] args = GetTemplateArguments(templateParam[i]);
+                    subtypes[i] = GetType(ad, bn, args);
+                }
+
+                Type t = GetType(basename);
+
+                if (t != null && subtypes.Length > 0)
+                {
+                    try
+                    {
+                        Type t2 = t.MakeGenericType(subtypes);
+                        System.Console.Error.WriteLine("returning type2: " + t2.FullName);
+                        return t2;
+                    }
+                    catch (Exception e)
+                    {
+                        System.Console.Error.WriteLine(e.Message);
+                        System.Console.Error.WriteLine(e.StackTrace);
+                    }
+                }
+                if (t != null)
+                    System.Console.Error.WriteLine("returning type: " + t.FullName);
+                return t;
+            }
+            private enum Accessibility
+            {
+                NONE = (0<<0),
+                STATIC = (1<<0),
+                PRIVATE = (1<<1),
+                PROTECTED = (1<<2),
+                PUBLIC = (1<<3),
+                INTERNAL = (1<<4)
+            };
+
+            private int GetModifiers(MemberInfo m)
+            {
+                Accessibility modifiers = Accessibility.NONE;
+                switch (m.MemberType)
+                {
+                    case MemberTypes.Field:
+                    {
+                        FieldInfo f = (FieldInfo)m;
+                        if (f.IsPrivate)
+                            modifiers |= Accessibility.PRIVATE;
+                        if (f.IsPublic)
+                            modifiers |= Accessibility.PUBLIC;
+                        if (f.IsStatic)
+                            modifiers |= Accessibility.STATIC;
+                        if (!f.IsPublic && !f.IsPrivate)
+                            modifiers |= Accessibility.PROTECTED;
+                        break;
+                    }
+                    case MemberTypes.Method:
+                    {
+                        MethodInfo mi = (MethodInfo)m;
+                        if (mi.IsPrivate)
+                            modifiers |= Accessibility.PRIVATE;
+                        if (mi.IsPublic)
+                            modifiers |= Accessibility.PUBLIC;
+                        if (mi.IsStatic)
+                            modifiers |= Accessibility.STATIC;
+                        if (!mi.IsPublic && !mi.IsPrivate)
+                            modifiers |= Accessibility.PROTECTED;
+                        break;
+                    }
+                    case MemberTypes.Property:
+                    {
+                        PropertyInfo p = (PropertyInfo)m;
+                        foreach (MethodInfo mi in p.GetAccessors())
+                        {
+                            modifiers |= (Accessibility)GetModifiers(mi);
+                        }
+                        break;
+                    }
+                    default:
+                    {
+                        modifiers = Accessibility.STATIC|Accessibility.PUBLIC;
+                        break;
+                    }
+                }
+                return (int) modifiers;
+            }
+
             public MyAppDomain ad;
 
-            public void Load(byte[] data)
+            public void Load(String str)
             {
-                AppDomain.CurrentDomain.Load(data);
+                Assembly.LoadFrom(str);
             }
             public Type GetType(string basename)
             {
@@ -368,7 +368,7 @@ public class CompleteSharp
                     Type t = null;
                     try
                     {
-                        t = CompleteSharp.GetType(ad, args[1], templateParam);
+                        t = GetType(ad, args[1], templateParam);
                     }
                     catch (Exception e)
                     {
@@ -560,7 +560,7 @@ public class CompleteSharp
                     idx++;
 
                     System.Console.Error.WriteLine("Loading: " + a);
-                    h.Load(File.ReadAllBytes(a));
+                    h.Load(a);
                 }
                 catch (Exception e)
                 {
@@ -569,13 +569,7 @@ public class CompleteSharp
                 }
             }
         }
-        public Type GetType(string basename)
-        {
-            object o = ad.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, "CompleteSharp+MyAppDomain+Hack");
-            Hack h = o as Hack;
-            h.ad = this;
-            return h.GetType(basename);
-        }
+
         public bool Execute(string[] args, ArrayList modules)
         {
             CheckUpdate();
