@@ -460,10 +460,11 @@ public class CompleteSharp
                                     else if (t3.Namespace != args[1] && t3.Namespace.StartsWith(args[1]))
                                     {
                                         string name = t3.Namespace.Substring(args[1].Length+1);
-                                        if (!name.Contains("."))
-                                        {
-                                            System.Console.WriteLine(name + "\tnamespace" + sep + name);
-                                        }
+                                        int index = name.IndexOf('.');
+                                        if (index != -1)
+                                            name = name.Substring(0, index);
+
+                                        System.Console.WriteLine(name + "\tnamespace" + sep + name);
                                     }
                                 }
                             }
