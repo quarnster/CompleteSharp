@@ -82,10 +82,16 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
         return packages
 
     def filter(self, typename, var, isstatic, data, indata):
+        filterregex = self.get_setting("completesharp_filterregex", r"^(get_|set_|op_|add_|remove_)")
+        try:
+            filterregex = re.compile(filterregex)
+        except:
+            sublime.error_message("Invalid filter regular expression. Please modify your completesharp_filterregex setting")
+            filterregex = None
         ret = []
         for d in indata:
             # get_ and set_ are mostly associated with properties
-            if d[0].startswith("get_") or d[0].startswith("set_"):
+            if filterregex and filterregex.search(d[0]) != None:
                 continue
             elif len(d) == 3 and self.is_static(d[2]) and var != None:
                 continue
