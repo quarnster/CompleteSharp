@@ -94,9 +94,12 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
 
     def get_cmd(self):
         extra = self.get_setting("completesharp_assemblies", [])
-        cmd = "CompleteSharp.exe '%s'" % ";;--;;".join(extra)
+        cmd = ""
+        q = "\""
         if sublime.platform() != "windows":
-            cmd = "mono " + cmd
+            cmd = "mono "
+            q = "\'"
+        cmd = "%sCompleteSharp.exe %s%s%s" % (cmd, q, ";;--;;".join(extra), q)
         return cmd
 
     def is_supported_language(self, view):
