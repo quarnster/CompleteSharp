@@ -279,7 +279,7 @@ public class CompleteSharp
 
             public void Load(String str)
             {
-                Assembly.LoadFrom(str);
+                Assembly.Load(File.ReadAllBytes(str));
             }
             public Type GetType(string basename)
             {
