@@ -35,6 +35,11 @@ public class CompleteSharp
     {
         class Hack : MarshalByRefObject
         {
+            public Hack()
+            {
+                AppDomain.CurrentDomain.AssemblyResolve += ResolveAssembly;
+            }
+
             private int GetParameterExtent(string parameter)
             {
                 int hookcount = 0;
@@ -277,6 +282,18 @@ public class CompleteSharp
 
             public MyAppDomain ad;
 
+            private Assembly ResolveAssembly(object sender, ResolveEventArgs args)
+            {
+                string name = args.Name.Substring(0, args.Name.IndexOf(","));
+                foreach (Assembly asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    if (asm.FullName.Substring(0, asm.FullName.IndexOf(',')) == name)
+                    {
+                        return asm;
+                    }
+                }
+                return null;
+            }
             public void Load(String str)
             {
                 Assembly.Load(File.ReadAllBytes(str));
