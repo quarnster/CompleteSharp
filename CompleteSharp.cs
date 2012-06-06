@@ -430,20 +430,49 @@ public class CompleteSharp
                                             completion = completion.Substring(0, index+1);
                                             display = completion;
                                             string[] par = param.Split(new Char[]{','});
-                                            int i = 1;
+                                            int addIndex = 1;
+                                            index2 = completion[index-1] == ']' ? index-1 : -1;
+                                            display = completion;
+                                            bool first = true;
+                                            string[] generics = null;
+                                            if (index2 != -1)
+                                            {
+                                                index = completion.IndexOf('[')+1;
+                                                // Generic method
+                                                string generic = completion.Substring(index, index2-index);
+                                                completion = completion.Substring(0, index-1) + "<";
+                                                display = completion;
+                                                generics = generic.Split(new char[]{','});
+                                                foreach (string g in generics)
+                                                {
+                                                    if (!first)
+                                                    {
+                                                        completion += ", ";
+                                                        display += ", ";
+                                                    }
+                                                    display += g;
+                                                    completion += "${" + addIndex + ":" + g + "}";
+                                                    addIndex++;
+                                                    first = false;
+                                                }
+                                                display += ">(";
+                                                completion += ">(";
+                                            }
+                                            first = true;
                                             foreach (string p in par)
                                             {
                                                 string toadd = FixName(p.Trim());
                                                 if (toadd.Length > 0)
                                                 {
-                                                    if (i > 1)
+                                                    if (!first)
                                                     {
                                                         completion += ", ";
                                                         display += ", ";
                                                     }
                                                     display += toadd;
-                                                    completion += "${" + i + ":" + toadd + "}";
-                                                    i++;
+                                                    completion += "${" + addIndex + ":" + toadd + "}";
+                                                    addIndex++;
+                                                    first = false;
                                                 }
                                             }
                                             completion += ")";
@@ -493,14 +522,38 @@ public class CompleteSharp
                         {
                             bool found = false;
                             BindingFlags flags = BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.FlattenHierarchy;
+                            string funcname = args[2];
+                            Type[] generics = null;
+                            int index = funcname.IndexOf('<');
+                            int index2 = funcname.LastIndexOf('>');
+                            if (index != -1 && index2 != -1)
+                            {
+                                string[] generics2 = funcname.Substring(index+1, index2-index-1).Split(new Char[]{','});
+                                funcname = funcname.Substring(0, index);
+                                generics = new Type[generics2.Length];
+                                for (int i = 0; i < generics2.Length; i++)
+                                {
+                                    generics[i] = GetType(generics2[i]);
+                                    if (generics[i] == null)
+                                    {
+                                        generics = null;
+                                        break;
+                                    }
+                                }
+                            }
                             // This isn't 100% correct, but an instance where two things
                             // are named the same but return two different types would
                             // be considered rare.
                             foreach (MethodInfo m in t.GetMethods(flags))
                             {
-                                if (m.Name == args[2])
+                                if (m.Name == funcname)
                                 {
-                                    System.Console.WriteLine(FixName(m.ReturnType.FullName));
+                                    MethodInfo m2 = m;
+                                    if (generics != null)
+                                    {
+                                        m2 = m2.MakeGenericMethod(generics);
+                                    }
+                                    System.Console.WriteLine(FixName(m2.ReturnType.FullName));
                                     found = true;
                                     break;
                                 }
