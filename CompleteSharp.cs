@@ -213,7 +213,7 @@ public class CompleteSharp
                     }
                     catch (Exception e)
                     {
-                        System.Console.Error.WriteLine(e.Message);
+                        System.Console.Error.WriteLine("Exception: " + e.Message);
                         System.Console.Error.WriteLine(e.StackTrace);
                     }
                 }
@@ -347,7 +347,7 @@ public class CompleteSharp
                             }
                             catch (Exception e)
                             {
-                                System.Console.Error.WriteLine(e.Message);
+                                System.Console.Error.WriteLine("Exception: " + e.Message);
                                 System.Console.Error.WriteLine(e.StackTrace);
                             }
                         }
@@ -399,7 +399,7 @@ public class CompleteSharp
                     }
                     catch (Exception e)
                     {
-                        System.Console.Error.WriteLine("exception: " + e.Message);
+                        System.Console.Error.WriteLine("Exception: " + e.Message);
                         System.Console.Error.WriteLine(e.StackTrace);
                     }
 
@@ -637,7 +637,8 @@ public class CompleteSharp
                 }
                 catch (Exception e)
                 {
-                    System.Console.Error.WriteLine(e);
+                    System.Console.Error.WriteLine("Exception: " + e.Message);
+                    System.Console.Error.WriteLine(e.StackTrace);
                 }
                 return true;
             }
@@ -678,7 +679,7 @@ public class CompleteSharp
                 }
                 catch (Exception e)
                 {
-                    System.Console.Error.WriteLine("exception: " + e.Message);
+                    System.Console.Error.WriteLine("Exception: " + e.Message);
                     System.Console.Error.WriteLine(e.StackTrace);
                 }
             }
@@ -702,12 +703,20 @@ public class CompleteSharp
             bool reload = false;
             for (int i = 0; i < times.Length; i++)
             {
-                FileInfo fi = new FileInfo(assemblies[i]);
-                if (fi.LastWriteTime > times[i])
+                try
                 {
-                    System.Console.Error.WriteLine("changed: " + assemblies[i] + ", " + fi.LastWriteTime + ", " + times[i]);
-                    reload = true;
-                    break;
+                    FileInfo fi = new FileInfo(assemblies[i]);
+                    if (fi.LastWriteTime > times[i])
+                    {
+                        System.Console.Error.WriteLine("changed: " + assemblies[i] + ", " + fi.LastWriteTime + ", " + times[i]);
+                        reload = true;
+                        break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    System.Console.Error.WriteLine("Exception: " + e.Message);
+                    System.Console.Error.WriteLine(e.StackTrace);
                 }
             }
             if (reload)
@@ -772,14 +781,15 @@ public class CompleteSharp
                 }
                 catch (Exception e)
                 {
-                    System.Console.Error.WriteLine(e.Message);
+                    System.Console.Error.WriteLine("Exception:" + e.Message);
                     System.Console.Error.WriteLine(e.StackTrace);
                 }
             }
         }
         catch (Exception e)
         {
-            System.Console.Error.WriteLine(e);
+            System.Console.Error.WriteLine("Exception:" + e.Message);
+            System.Console.Error.WriteLine(e.StackTrace);
         }
     }
 }
