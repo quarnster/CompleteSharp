@@ -6,11 +6,11 @@
             "description": "C# completions for Sublime Text 2",
             "author": "Fredrik Ehnbom (quarnster)",
             "homepage": "http://github.com/quarnster/CompleteSharp",
-            "last_modified": "2012-06-20 20:45:00",
+            "last_modified": "2012-06-21 19:30:00",
             "platforms": {
                 "*": [
                     {
-                        "version": "1.0.1",
+                        "version": "1.0.2",
                         "url": "http://cloud.github.com/downloads/quarnster/CompleteSharp/CompleteSharp.sublime-package"
                     }
                 ]
