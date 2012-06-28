@@ -100,6 +100,11 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
 
     def get_cmd(self):
         extra = self.get_setting("completesharp_assemblies", [])
+        newextra = []
+        window = sublime.active_window()
+        for path in extra:
+            newextra.append(self.expand_path(path, window))
+        extra = newextra
         cmd = ""
         q = "\""
         if sublime.platform() != "windows":
