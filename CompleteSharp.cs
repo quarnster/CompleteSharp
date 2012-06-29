@@ -416,7 +416,20 @@ public class CompleteSharp
                                     case MemberTypes.Method:
                                     case MemberTypes.Property:
                                     {
-                                        string completion = m.ToString();
+                                        string completion = null;
+                                        try
+                                        {
+                                            completion = m.ToString();
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            System.Console.Error.WriteLine("Skipping this member as an exception was thrown when calling ToString:");
+                                            System.Console.Error.WriteLine(e.Message);
+                                            // Seems that some state is messed up when this happens, so we need to
+                                            // force a reload of the assemblies to make it work again.
+                                            ad.forceReload = true;
+                                            continue;
+                                        }
                                         int index = completion.IndexOf(' ');
                                         string returnType = completion.Substring(0, index);
                                         completion = completion.Substring(index+1);
@@ -694,13 +707,15 @@ public class CompleteSharp
             return h.Execute(args, modules);
         }
 
+        bool forceReload = false;
+
         private void CheckUpdate()
         {
             // Yes, polling like this is a bit messy, however FileSystemWatcher didn't
             // work for me on OS X, there probably aren't that many assemblies to check
             // and the polling is only done after the user requests a completion, so
             // it shouldn't be too bad
-            bool reload = false;
+            bool reload = forceReload;
             for (int i = 0; i < times.Length; i++)
             {
                 try
@@ -721,6 +736,7 @@ public class CompleteSharp
             }
             if (reload)
             {
+                forceReload = false;
                 LoadAssemblies();
             }
         }
