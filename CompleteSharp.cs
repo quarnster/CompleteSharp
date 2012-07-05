@@ -282,6 +282,25 @@ public class CompleteSharp
 
             public MyAppDomain ad;
 
+
+            Assembly TryLoad(string path, string name)
+            {
+                path = path.Replace("file://", "");
+                int idx1 = path.LastIndexOf('/');
+                int idx2 = path.LastIndexOf('\\');
+                int idx = Math.Max(idx1, idx2);
+                if (idx != -1)
+                {
+                    path = path.Substring(0, idx);
+                }
+                path = path + "/" + name + ".dll";
+                FileInfo fi = new FileInfo(path);
+                if (fi.Exists)
+                {
+                    return Load(path);
+                }
+                return null;
+            }
             private Assembly ResolveAssembly(object sender, ResolveEventArgs args)
             {
                 string name = args.Name.Substring(0, args.Name.IndexOf(","));
@@ -292,11 +311,30 @@ public class CompleteSharp
                         return asm;
                     }
                 }
+                // Assembly wasn't found, try and see if it's in the same directory
+                // as one of the other already loaded assemblies.
+                if (ad != null)
+                {
+                    foreach (string asm in ad.assemblies)
+                    {
+                        Assembly ret = TryLoad(asm, name);
+                        if (ret != null)
+                            return ret;
+                    }
+                }
+
+                foreach (Assembly asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    Assembly ret = TryLoad(asm.CodeBase, name);
+                    if (ret != null)
+                        return ret;
+                }
+                System.Console.Error.WriteLine("Couldn't find assembly: " + name);
                 return null;
             }
-            public void Load(String str)
+            public Assembly Load(String str)
             {
-                Assembly.Load(File.ReadAllBytes(str));
+                return Assembly.Load(File.ReadAllBytes(str));
             }
             public Type GetType(string basename)
             {
@@ -357,28 +395,34 @@ public class CompleteSharp
 
                         foreach (Assembly asm in assemblies)
                         {
-                            foreach (Type t3 in asm.GetTypes())
+                            try
                             {
-                                if (t3.Namespace == null)
-                                    continue;
-                                foreach (string mod in modules)
+                                foreach (Type t3 in asm.GetTypes())
                                 {
-                                    string test = args[1];
-                                    if (mod.Length > 0)
-                                        test = mod + "." + test;
-                                    if (t3.Namespace.StartsWith(test))
+                                    if (t3.Namespace == null)
+                                        continue;
+                                    foreach (string mod in modules)
                                     {
-                                        System.Console.WriteLine(test);
-                                        System.Console.Error.WriteLine(test);
-                                        found = true;
-                                        break;
+                                        string test = args[1];
+                                        if (mod.Length > 0)
+                                            test = mod + "." + test;
+                                        if (t3.Namespace.StartsWith(test))
+                                        {
+                                            System.Console.WriteLine(test);
+                                            System.Console.Error.WriteLine(test);
+                                            found = true;
+                                            break;
+                                        }
                                     }
+                                    if (found)
+                                        break;
                                 }
                                 if (found)
                                     break;
                             }
-                            if (found)
-                                break;
+                            catch (Exception)
+                            {
+                            }
                         }
                         return true;
                     }
@@ -508,23 +552,29 @@ public class CompleteSharp
                         {
                             foreach (Assembly asm in assemblies)
                             {
-                                foreach (Type t3 in asm.GetTypes())
+                                try
                                 {
-                                    if (t3.Namespace == null)
-                                        continue;
-                                    if (t3.Namespace == args[1])
+                                    foreach (Type t3 in asm.GetTypes())
                                     {
-                                        System.Console.WriteLine(FixName(t3.Name) + "\tclass" + sep + FixName(t3.Name, true));
-                                    }
-                                    else if (t3.Namespace != args[1] && t3.Namespace.StartsWith(args[1]))
-                                    {
-                                        string name = t3.Namespace.Substring(args[1].Length+1);
-                                        int index = name.IndexOf('.');
-                                        if (index != -1)
-                                            name = name.Substring(0, index);
+                                        if (t3.Namespace == null)
+                                            continue;
+                                        if (t3.Namespace == args[1])
+                                        {
+                                            System.Console.WriteLine(FixName(t3.Name) + "\tclass" + sep + FixName(t3.Name, true));
+                                        }
+                                        else if (t3.Namespace != args[1] && t3.Namespace.StartsWith(args[1]))
+                                        {
+                                            string name = t3.Namespace.Substring(args[1].Length+1);
+                                            int index = name.IndexOf('.');
+                                            if (index != -1)
+                                                name = name.Substring(0, index);
 
-                                        System.Console.WriteLine(name + "\tnamespace" + sep + name);
+                                            System.Console.WriteLine(name + "\tnamespace" + sep + name);
+                                        }
                                     }
+                                }
+                                catch (Exception)
+                                {
                                 }
                             }
                         }
@@ -610,19 +660,25 @@ public class CompleteSharp
                             bool found = false;
                             foreach (Assembly asm in assemblies)
                             {
-                                foreach (Type t3 in asm.GetTypes())
+                                try
                                 {
-                                    if (t3.Namespace == null)
-                                        continue;
-                                    if (t3.Namespace == args[1] && t3.Name == args[2])
+                                    foreach (Type t3 in asm.GetTypes())
                                     {
-                                        System.Console.WriteLine(FixName(t3.FullName));
-                                        found = true;
-                                        break;
+                                        if (t3.Namespace == null)
+                                            continue;
+                                        if (t3.Namespace == args[1] && t3.Name == args[2])
+                                        {
+                                            System.Console.WriteLine(FixName(t3.FullName));
+                                            found = true;
+                                            break;
+                                        }
                                     }
+                                    if (found)
+                                        break;
                                 }
-                                if (found)
-                                    break;
+                                catch (Exception)
+                                {
+                                }
                             }
                             if (!found)
                             {
@@ -630,19 +686,24 @@ public class CompleteSharp
                                 string ns = args[1] + "." + args[2];
                                 foreach (Assembly asm in assemblies)
                                 {
-                                    foreach (Type t3 in asm.GetTypes())
+                                    try
                                     {
-                                        if (t3.Namespace == null)
-                                            continue;
-                                        if (t3.Namespace.StartsWith(ns))
+                                        foreach (Type t3 in asm.GetTypes())
                                         {
-                                            System.Console.WriteLine(ns);
-                                            found = true;
-                                            break;
+                                            if (t3.Namespace == null)
+                                                continue;
+                                            if (t3.Namespace.StartsWith(ns))
+                                            {
+                                                System.Console.WriteLine(ns);
+                                                found = true;
+                                                break;
+                                            }
                                         }
+                                        if (found)
+                                            break;
                                     }
-                                    if (found)
-                                        break;
+                                    catch (Exception)
+                                    {}
                                 }
                             }
                         }
