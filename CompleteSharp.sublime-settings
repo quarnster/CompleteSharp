@@ -20,7 +20,7 @@
 
     // Regular expression filter used to filter the completion
     // suggestions
-    "completesharp_filterregex": "^(get_|set_|op_|add_|remove_)",
+    "completesharp_filterregex": "^(get_|set_|op_|add_|remove_|<)",
 
     // When set to true will inhibit the completions suggested
     // by default by Sublime Text 2 if CompleteSharp can't

@@ -82,7 +82,7 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
         return packages
 
     def filter(self, typename, var, isstatic, data, indata):
-        filterregex = self.get_setting("completesharp_filterregex", r"^(get_|set_|op_|add_|remove_)")
+        filterregex = self.get_setting("completesharp_filterregex", r"^(get_|set_|op_|add_|remove_|<)")
         try:
             filterregex = re.compile(filterregex)
         except:
