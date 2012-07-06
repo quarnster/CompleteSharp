@@ -75,6 +75,22 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
             type = self.replacements[type]
         return super(CompleteSharpCompletion, self).find_absolute_of_type(data, full_data, type)
 
+    def error_thread(self):
+        try:
+            errors = "The following assemblies could not be loaded, please consider manually adding them to your completesharp_assemblies list:\n\n"
+            while True:
+                if self.completion_proc.poll() != None:
+                    break
+                line = self.completion_proc.stderr.readline().strip()
+                if line.startswith("Couldn't find assembly: "):
+                    asm = line[line.find(":")+2:]
+                    if not asm in errors:
+                        errors += asm + "\n"
+                        sublime.set_timeout(lambda: sublime.error_message(errors), 0)
+                print "stderr: %s" % line
+        finally:
+            pass
+
     def get_packages(self, data, thispackage, type):
         packages = re.findall("[ \t]*using[ \t]+(.*);", data)
         packages.append("System")

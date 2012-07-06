@@ -738,6 +738,7 @@ public class CompleteSharp
             ad = AppDomain.CreateDomain("MyAppDomain");
             object o = ad.CreateInstanceAndUnwrap(Assembly.GetExecutingAssembly().FullName, "CompleteSharp+MyAppDomain+Hack");
             Hack h = o as Hack;
+            h.ad = this;
             int idx = 0;
 
             foreach (string a in assemblies)
