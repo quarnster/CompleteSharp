@@ -124,7 +124,7 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
         cmd = ""
         q = "\""
         if sublime.platform() != "windows":
-            cmd = "mono "
+            cmd = self.get_setting("completesharp_mono_path", "mono") + " "
             q = "\'"
         cmd = "%sCompleteSharp.exe %s%s%s" % (cmd, q, ";;--;;".join(extra), q)
         return cmd
