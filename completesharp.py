@@ -24,6 +24,7 @@ import sublime_plugin
 import sublime
 import os.path
 import re
+import glob
 try:
     from sublimecompletioncommon import completioncommon
     reload(completioncommon)
@@ -119,7 +120,7 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
         newextra = []
         window = sublime.active_window()
         for path in extra:
-            newextra.append(self.expand_path(path, window))
+            newextra.extend(glob.glob(self.expand_path(path, window, False)))
         extra = newextra
         cmd = ""
         q = "\""
