@@ -859,14 +859,14 @@ public class CompleteSharp
                 }
                 catch (Exception e)
                 {
-                    System.Console.Error.WriteLine("Exception:" + e.Message);
+                    System.Console.Error.WriteLine("Exception: " + e.Message);
                     System.Console.Error.WriteLine(e.StackTrace);
                 }
             }
         }
         catch (Exception e)
         {
-            System.Console.Error.WriteLine("Exception:" + e.Message);
+            System.Console.Error.WriteLine("Exception: " + e.Message);
             System.Console.Error.WriteLine(e.StackTrace);
         }
     }
