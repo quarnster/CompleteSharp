@@ -213,8 +213,7 @@ public class CompleteSharp
                     }
                     catch (Exception e)
                     {
-                        System.Console.Error.WriteLine("Exception: " + e.Message);
-                        System.Console.Error.WriteLine(e.StackTrace);
+                        reportError(e);
                     }
                 }
                 if (t != null)
@@ -385,8 +384,7 @@ public class CompleteSharp
                             }
                             catch (Exception e)
                             {
-                                System.Console.Error.WriteLine("Exception: " + e.Message);
-                                System.Console.Error.WriteLine(e.StackTrace);
+                                reportError(e);
                             }
                         }
                         if (found)
@@ -443,8 +441,7 @@ public class CompleteSharp
                     }
                     catch (Exception e)
                     {
-                        System.Console.Error.WriteLine("Exception: " + e.Message);
-                        System.Console.Error.WriteLine(e.StackTrace);
+                        reportError(e);
                     }
 
                     if (args[0] == "-complete")
@@ -711,8 +708,7 @@ public class CompleteSharp
                 }
                 catch (Exception e)
                 {
-                    System.Console.Error.WriteLine("Exception: " + e.Message);
-                    System.Console.Error.WriteLine(e.StackTrace);
+                    reportError(e);
                 }
                 return true;
             }
@@ -754,8 +750,7 @@ public class CompleteSharp
                 }
                 catch (Exception e)
                 {
-                    System.Console.Error.WriteLine("Exception: " + e.Message);
-                    System.Console.Error.WriteLine(e.StackTrace);
+                    reportError(e);
                 }
             }
         }
@@ -792,8 +787,7 @@ public class CompleteSharp
                 }
                 catch (Exception e)
                 {
-                    System.Console.Error.WriteLine("Exception: " + e.Message);
-                    System.Console.Error.WriteLine(e.StackTrace);
+                    reportError(e);
                 }
             }
             if (reload)
@@ -802,6 +796,14 @@ public class CompleteSharp
                 LoadAssemblies();
             }
         }
+    }
+
+
+    static void reportError(Exception e)
+    {
+        System.Console.Error.WriteLine("Exception: " + e.Message);
+        System.Console.Error.WriteLine(e.StackTrace);
+        System.Console.Error.WriteLine(sep);
     }
 
     public static void Main(string[] arg)
@@ -859,15 +861,13 @@ public class CompleteSharp
                 }
                 catch (Exception e)
                 {
-                    System.Console.Error.WriteLine("Exception: " + e.Message);
-                    System.Console.Error.WriteLine(e.StackTrace);
+                    reportError(e);
                 }
             }
         }
         catch (Exception e)
         {
-            System.Console.Error.WriteLine("Exception: " + e.Message);
-            System.Console.Error.WriteLine(e.StackTrace);
+            reportError(e);
         }
     }
 }
