@@ -28,7 +28,7 @@ import glob
 import imp
 
 completioncommon = imp.load_source("completioncommon", os.path.join(os.path.dirname(os.path.abspath(__file__)), "sublimecompletioncommon/completioncommon.py"))
-imp.reload(completioncommon)
+completioncommon.reload(completioncommon)
 
 
 class CompleteSharpDotComplete(completioncommon.CompletionCommonDotComplete):
