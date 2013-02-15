@@ -14,8 +14,7 @@ if __name__ == "__main__":
         assert(os.system(cmd) == 0)
 
     version = json.load(open('package.json'))['packages'][0]['platforms']['*'][0]['version']
-    if not os.access("CompleteSharp.exe", os.R_OK) or os.path.getmtime("CompleteSharp.cs") > os.path.getmtime("CompleteSharp.exe"):
-        run("mcs -platform:x86 CompleteSharp.cs")
+    run("mcs -platform:x86 CompleteSharp.cs")
 
     package_name = "CompleteSharp-%s.sublime-package" % version
 
