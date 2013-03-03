@@ -60,7 +60,7 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
             while True:
                 if self.completion_proc.poll() != None:
                     break
-                line = self.completion_proc.stderr.readline().strip()
+                line = self.completion_proc.stderr.readline().decode(sys.getdefaultencoding()).strip()
                 if line.startswith("Couldn't find assembly: "):
                     asm = line[line.find(":")+2:]
                     if not asm in errors:
