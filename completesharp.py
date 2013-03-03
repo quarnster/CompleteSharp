@@ -26,6 +26,7 @@ import os.path
 import re
 import glob
 import imp
+import sys
 
 completioncommon = imp.load_source("completioncommon", os.path.join(os.path.dirname(os.path.abspath(__file__)), "sublimecompletioncommon/completioncommon.py"))
 completioncommon.reload(completioncommon)
