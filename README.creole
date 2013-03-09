@@ -1,3 +1,8 @@
+= Plugin discontinued =
+** I don't intend to continue development of this plugin, so I've disabled the issues page. If something is broken, submit a pull request and I'll consider merging it.
+
+** Eventually it will be replaced by https://github.com/quarnster/completion. If you'd like to see that move along quicker, submit a pull request and/or participate in its discussions.
+
 === Description ===
 A plugin that provides C# code completion inside of Sublime Text 2.
 
