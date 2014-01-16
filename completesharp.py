@@ -99,7 +99,7 @@ class CompleteSharpCompletion(completioncommon.CompletionCommon):
         newextra = []
         window = sublime.active_window()
         for path in extra:
-            newextra.extend(glob.glob(self.expand_path(path, window, False)))
+            newextra.extend(glob.glob(self.expand_path(path, window, True)))
         extra = newextra
         cmd = ""
         q = "\""
